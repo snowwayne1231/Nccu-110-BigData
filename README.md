@@ -16,13 +16,20 @@ pip install -r requirements.txt
 
 ## Crawl News Data ##
 ```Shell
-python project-midterm/crawl.py
-python project-midterm/refresh_date.py [filepath]
+python projectbtc/crawl_news/crawl.py
+python projectbtc/crawl_news/refresh_date.py [filepath]
+python 
+```
+
+## Handle News Data to X,Y dataset
+```Shell
+python projectbtc/supervisoredtext.py
+
 ```
 
 
 ## Midterm Clustering ##
 ```Shell
-python project-midterm/clustering_btc_price.py
+python projectbtc/clustering_btc_price.py
 ```
 

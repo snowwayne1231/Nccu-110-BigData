@@ -1,0 +1,22 @@
+消息面
+
+    消息資料來源從 ( https://news.bitcoin.com/ ) 爬取跟 bitcoin 相關的新聞文章
+    共1萬4千多篇文章從2016年12月到2021年11月
+    每篇文章只截取 “標題” 與 “大綱200單字內”
+    (參考 news-bitcoin-com-websites.json 檔案 為已經爬完的內容)
+
+Modeling
+    使用 Embedding(Word2Vector) Layer 處理字詞向量分類
+    使用 Supervisored Learning 將標籤分為0~15整數
+    data 處理：
+    * Ｘ(n ＝ 每日每筆新聞單詞向量(n
+    * Ｙ(n ＝ 每日 bitcoin 的日線價格 - 200日均線價格 轉為漲跌幅的百分比0~6為跌幅程度8~15為漲幅程度; 如漲跌幅低於1%內則定義為7
+    * loss function 用mean_square_error 只取一個平均趨勢 
+    ( 雖然文章內容有可能是同一天一個大利多消息，蓋過了十個利空消息）
+    ( 但是就假設在數據量夠大的情況會趨於一種趨勢 )
+    * Weight 每筆資料的權重由bitcoin data的volume 來轉為1~3
+    * 資料切分前80%為train data 後20%為validation data
+
+Output
+	新聞模型訓練好後 再依照之後團隊的討論改變輸出的特徵
+	暫定對每一週的新聞 數值取 兩特徵值 （一週最高漲跌幅值, 一週最低漲跌幅值）
