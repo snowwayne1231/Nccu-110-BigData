@@ -5,6 +5,9 @@ import sys, json
 from tslearn.clustering import TimeSeriesKMeans
 from tslearn.utils import to_time_series_dataset, save_time_series_txt, load_time_series_txt
 
+STATIC_PATH_PRICES_POINTS_DATA = 'json/tmp_price_points.json'
+STATIC_PATH_CLUSTER_DATA = 'json/cluster_xy_data.json'
+
 
 def output_jpg(data, y='Y', x='X', name='example'):
     plt.plot(data)
@@ -15,9 +18,8 @@ def output_jpg(data, y='Y', x='X', name='example'):
 
 
 def get_tmp_dataframe():
-    _static_path = 'json/tmp_price_points.json'
     jsondata = None
-    with open(_static_path, 'r') as f:
+    with open(STATIC_PATH_PRICES_POINTS_DATA, 'r') as f:
         jsondata = json.load(f)
     return jsondata['results'], jsondata['answers']
 
@@ -58,7 +60,7 @@ def get_splited168point_dataframe(filepath):
 
     print(' 100.00% - Done.')
 
-    with open('json/tmp_price_points.json', 'w') as f:
+    with open(STATIC_PATH_PRICES_POINTS_DATA, 'w') as f:
         json.dump({'results':results,'answers':answers}, f, indent=2)
 
     return results, answers
@@ -66,23 +68,39 @@ def get_splited168point_dataframe(filepath):
 
 
 def get_custom_points(dataframe):
-    date = dataframe['Date'].iloc[-1]
+    date_start = dataframe['Date'].iloc[0]
+    date_end = dataframe['Date'].iloc[-1]
     _mean_close = dataframe['Close'].mean()
     _mean_volume = dataframe['Volume'].mean()
     _list_prices = dataframe['Close'].tolist()
     _list_volumes = dataframe['Volume'].tolist()
 
-    # define the points of price and volume
-    _list_prices_ratio_changes = [int((_p - _mean_close) / _mean_close * 10000) / 100 for _p in _list_prices]
-    # _list_volume_ratio_changes = [int((_v - _mean_volume) / _mean_volume * 10000) / 100 for _v in _list_volumes]
+    high = dataframe['High'].max()
+    low = dataframe['Low'].min()
+    open = dataframe['Open'].iloc[0]
+    close = dataframe['Close'].iloc[-1]
 
-    # print(_list_prices_ratio_changes)
-    # return {'date': date, 'pricepoints': _list_prices_ratio_changes, 'volumepoints': _list_volume_ratio_changes}
-    return {'date': date, 'pricepoints': _list_prices_ratio_changes}
+    # list_prices_ratio_changes = []
+    # for _p in _list_prices:
+    #     _change_ratio = int((_p - open) / open * 10000) / 100 
+
+    # define the points of price and volume
+    list_prices_ratio_changes = [int((_p - open) / open * 10000) / 100 for _p in _list_prices]
+
+    return {
+        'date_start': date_start,
+        'date_end': date_end,
+        'high': high,
+        'low': low,
+        'open': open,
+        'close': close,
+        'pricepoints': list_prices_ratio_changes,
+    }
 
 
 def get_custom_answer(dataframe):
-    date = dataframe['Date'].iloc[0]
+    date_start = dataframe['Date'].iloc[0]
+    date_end = dataframe['Date'].iloc[-1]
     price = dataframe['Close'].iloc[0]
     _list_hight = dataframe['High'].tolist()
     _list_low = dataframe['Low'].tolist()
@@ -90,7 +108,7 @@ def get_custom_answer(dataframe):
     _min_low = min(_list_low)
     hieght_change = _max_hight / price
     low_change = _min_low / price
-    return {'date': date, 'price': price, 'high': hieght_change, 'low': low_change}
+    return {'date_start': date_start, 'date_end': date_end, 'price': price, 'high': hieght_change, 'low': low_change}
 
 def parse_time_series_data(listdata):
     formatted_time_series = to_time_series_dataset(listdata)
@@ -110,6 +128,7 @@ if __name__ == '__main__':
     length_argvs = len(argvs)
     datapoints = []
     answers = []
+    num_cluster = 8
 
     try:
 
@@ -142,7 +161,7 @@ if __name__ == '__main__':
         # formatted_time_series = formatted_time_series[:20]
         # np_answers = np_answers[:20]
         
-        km = TimeSeriesKMeans(n_clusters=5, metric="dtw", verbose=True)
+        km = TimeSeriesKMeans(n_clusters=num_cluster, metric="dtw", verbose=True)
         sz = formatted_time_series.shape[1]
         # km_model = km.fit(formatted_time_series)
         # print(km_model)
@@ -151,7 +170,7 @@ if __name__ == '__main__':
 
         ans_results = []
 
-        for yi in range(5):
+        for yi in range(num_cluster):
             plt.subplot(3, 3, yi+1)
             target_list = y_pred == yi
             
@@ -165,27 +184,38 @@ if __name__ == '__main__':
             for _at in _answer_targeted:
                 _high += _at['high']
                 _low += _at['low']
+                _date_start = _at['date_start']
             _high = _high / _length_ans
             _low = _low / _length_ans
+            _avg_income = (_high + _low) / 2
 
-            ans_results.append({'high': _high, 'low': _low})
+            ans_results.append({'high': _high, 'low': _low, 'avg': _avg_income})
 
             plt.plot(km.cluster_centers_[yi].ravel(), "g-")
             plt.xlim(0, sz)
-            plt.ylim(-10, 10)
+            plt.ylim(-25, 25)
             plt.text(0.55, 0.85,'Cluster {}'.format(yi + 1), transform=plt.gca().transAxes)
 
         #result
-        plt.subplot(3, 3, 8)
+        plt.subplot(3, 3, 9)
         highs = [h['high'] for h in ans_results]
         lows = [l['low'] for l in ans_results]
+        avgs_income = [l['avg'] for l in ans_results]
         plt.plot(highs, "b-", alpha=1)
         plt.plot(lows, "r-", alpha=1)
-        plt.xticks([0,1,2,3,4], ['C-1', 'C-2', 'C-3', 'C-4', 'C-5'])
+        plt.plot(avgs_income, "g-", alpha=1)
+        plt.xticks(range(num_cluster), ['c{}'.format(_) for _ in range(num_cluster)])
         
         # plt.tight_layout()
         # plt.show()
         plt.savefig('output/result.jpg')
+
+
+        for _idx, _dp in enumerate(datapoints):
+            _dp['cluster'] = int(y_pred[_idx])
+
+        with open(STATIC_PATH_CLUSTER_DATA, 'w') as f:
+            json.dump(datapoints, f, indent=2)
         
     except KeyboardInterrupt:
 

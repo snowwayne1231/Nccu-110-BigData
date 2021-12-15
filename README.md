@@ -33,3 +33,11 @@ python projectbtc/supervisoredtext.py
 python projectbtc/clustering_btc_price.py
 ```
 
+
+## Final BTC Project ##
+```Shell
+python projectbtc/train.py
+python projectbtc/predict.py
+
+```
+
