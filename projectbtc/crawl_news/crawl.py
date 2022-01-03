@@ -56,7 +56,7 @@ def crawlBitcoinComWebsites(page, stop_page, old_websites = None):
 
 
 
-def crawlNewsContentByJson(dataset, tmp=True):
+def crawlNewsContentByJson(dataset, tmp=False):
 
     _length_total = len(dataset)
     _i = 0

@@ -1,9 +1,11 @@
 import json, sys
 import numpy as np
 import pandas as pd
+import random
 
 from tensorflow.keras.models import load_model
 from clustering_btc_price import output_jpg
+from crawl_news.crawl import crawlBitcoinComWebsites, crawlNewsContentByJson
 
 
 def parse_price_to_change(prices):
@@ -15,6 +17,7 @@ def parse_price_to_change(prices):
 
 def parse_change_to_price(changes, basic_price):
     _rate = 100 / 5
+    
     return [(_c / _rate * basic_price) + basic_price for _c in changes]
 
 
@@ -29,7 +32,14 @@ if __name__ == '__main__':
 
         csv_path = argvs[0]
     
-    
+    # new_embedding_model = load_model('projectbtc/model/_saved_news_embedding')
+    # websites = crawlBitcoinComWebsites(5, 1)
+    # news_dataset = crawlNewsContentByJson(websites)
+
+    # print('news_dataset: ', news_dataset)
+    # exit(2)
+
+
     lstm_model = load_model('projectbtc/model/_saved_lstm.h5')
 
     df_csv_data = pd.read_csv(csv_path)
@@ -52,3 +62,6 @@ if __name__ == '__main__':
     df_csv.to_csv('output/predict_{}'.format(csv_path[-13:]))
 
     output_jpg(pred_prices, name='predict_price')
+
+    print('Maximal Of pred_prices: ', max(pred_prices))
+    print('Minimal Of pred_prices: ', min(pred_prices))

@@ -16,20 +16,21 @@ def get_lstm_model():
 
     # model.add(Input(shape=(672,)))
     
-    model.add(LSTM(64, input_shape=(672, 1), return_sequences = True))
+    model.add(LSTM(512, input_shape=(672, 2), return_sequences = True))
 
     model.add(Dropout(0.2))
 
-    model.add(LSTM(32))
+    model.add(LSTM(256))
 
     model.add(Dense(168))
     
     model.compile(
-        # loss=Huber(),
-        loss="mean_squared_error",
+        loss=Huber(),
+        # loss="mean_squared_error",
+        # loss="mae",
         # optimizer=SGD(lr=1e-2),
         optimizer="adam",
-        metrics=["mse"],
+        metrics=["hinge"],
     )
 
     model.summary()
@@ -134,7 +135,7 @@ if __name__ == '__main__':
 
     lstm_model = get_lstm_model()
 
-    history = lstm_model.fit(train_x, train_y, epochs=10)
+    history = lstm_model.fit(train_x, train_y, epochs=8)
 
     lstm_model.save('projectbtc/model/_saved_lstm.h5', save_format='h5')
     

@@ -5,6 +5,7 @@ import tensorflow as tf
 from tensorflow.keras import Sequential
 from tensorflow.keras.layers import Dense, Embedding, GlobalAveragePooling1D, TextVectorization, Dropout
 from unit.fileparse import openJSON
+from sklearn.preprocessing import MinMaxScaler
 
 
 VOCABULARY_SIZE = 32767
@@ -15,6 +16,11 @@ SEQUENCE_LENGTH = 120
 def get_news_to_btc_json_data():
     _static_path = 'json/news-to-btc.json'
     return openJSON(_static_path)
+
+
+def get_np_dataset_content(dataset, content_idx):
+    contents = [_[content_idx] for _ in dataset]
+    return np.array(contents)
 
 
 def get_vectorize_layer(size, length):
@@ -31,27 +37,11 @@ def get_vectorize_layer(size, length):
 
     return vectorize_layer
 
-def parse_train_y(dataset, idx):
-    next_data = [float(_[idx].replace('%', '')) for _ in dataset]
-    return np.array(next_data)
-
-
-if __name__ == '__main__':
-
-    json_news_to_btc = get_news_to_btc_json_data()
-    json_news_to_btc_data = json_news_to_btc['data']
-    _idx_content = json_news_to_btc['columns'].index('content')
-    _idx_change = json_news_to_btc['columns'].index('btc_change')
-    
-    contents = [_[_idx_content] for _ in json_news_to_btc_data]
-    np_content_ds = np.array(contents)
+def get_news_model(np_content_ds):
+    embedding_dim=8
 
     v_layer = get_vectorize_layer(VOCABULARY_SIZE, SEQUENCE_LENGTH)
     v_layer.adapt(np_content_ds)
-
-    embedding_dim=8
-
-    train_y = parse_train_y(json_news_to_btc_data, _idx_change)
 
     model = Sequential([
         v_layer,
@@ -63,7 +53,35 @@ if __name__ == '__main__':
         Dense(1)
     ])
 
-    model.compile(optimizer='sgd', loss=tf.keras.losses.MeanSquaredError(), metrics=['accuracy'])
+    model.compile(optimizer='adam', loss=tf.keras.losses.MeanSquaredError(), metrics=['mae'])
+
+    return model
+
+
+def parse_train_y(dataset, idx):
+    next_data = [float(_[idx].replace('%', '')) for _ in dataset]
+
+    np_next_data = np.array(next_data).reshape((-1,1))
+    min_max_scaler = MinMaxScaler(feature_range=(0, 1)).fit(np_next_data)
+
+    next_train_y = min_max_scaler.transform(np_next_data)
+
+    np_next_data = next_train_y.reshape((-1))
+    return np_next_data
+
+
+if __name__ == '__main__':
+
+    json_news_to_btc = get_news_to_btc_json_data()
+    json_news_to_btc_data = json_news_to_btc['data']
+    _idx_content = json_news_to_btc['columns'].index('content')
+    _idx_change = json_news_to_btc['columns'].index('btc_change')
+    
+    np_content_ds = get_np_dataset_content(json_news_to_btc_data, _idx_content)
+
+    train_y = parse_train_y(json_news_to_btc_data, _idx_change)
+    
+    model = get_news_model(np_content_ds)
 
     # print('train_y: ', train_y[1])
     # exit(2)
@@ -71,7 +89,7 @@ if __name__ == '__main__':
     model.fit(
         np_content_ds,
         train_y,
-        epochs=10,
+        epochs=50,
     )
 
     model.save('projectbtc/model/_saved_news_embedding')
