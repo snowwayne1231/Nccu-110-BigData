@@ -31,8 +31,9 @@ if __name__ == '__main__':
 
     for _file in list_predicts:
         _path = '{}/{}'.format(subset_dir_path, _file)
-        _df_subset_data = pd.read_csv(_path)
-        df_subset_datas.append(_df_subset_data)
+        if _path[-3:] == 'csv':
+            _df_subset_data = pd.read_csv(_path)
+            df_subset_datas.append(_df_subset_data)
 
     # fig = plt.figure(figsize=(20,16),dpi=100,linewidth = 1)
     # axe = fig.add_subplot(1, 1, 1)
@@ -47,7 +48,7 @@ if __name__ == '__main__':
     ax.plot(range(len(_timestamps)), _closes, label='RealPrice', color='green')
     # 2021-11-29 01:00:00
     _first_ts = parse_to_ts(_first_timestamp)
-    _color_list = ['#ff0000', '#888800', '#ffff00', '#0000ff', '#880088', '#ff00ff']
+    _color_list = ['#ff0000', '#888800', '#ffff00', '#0000ff', '#880088', '#ff00ff', '#ff0000', '#888800', '#ffff00']
     _color_idx = 0
 
     for _ in df_subset_datas:

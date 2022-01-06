@@ -1,4 +1,4 @@
-import json
+import json, sys
 import numpy as np
 import tensorflow as tf
 
@@ -6,6 +6,7 @@ from tensorflow.keras import Sequential
 from tensorflow.keras.layers import Dense, Embedding, GlobalAveragePooling1D, TextVectorization, Dropout
 from unit.fileparse import openJSON
 from sklearn.preprocessing import MinMaxScaler
+from crawl_news.crawl import crawlBitcoinComWebsites, crawlNewsContentByJson
 
 
 VOCABULARY_SIZE = 32767
@@ -85,13 +86,32 @@ if __name__ == '__main__':
 
     # print('train_y: ', train_y[1])
     # exit(2)
+    
+    argvs = sys.argv[1:]
+    length_argvs = len(argvs)
 
-    model.fit(
-        np_content_ds,
-        train_y,
-        epochs=50,
-    )
+    if length_argvs == 1 and argvs[0] == 'predict':
 
-    model.save('projectbtc/model/_saved_news_embedding')
+        model.load_weights('projectbtc/model/_saved_news_embedding')
+        
+        websites = crawlBitcoinComWebsites(5, 1)
+        news_dataset = crawlNewsContentByJson(websites)
+        
+        _x = np.array([_['content'] for _ in news_dataset])
+        
+        _pred = model.predict([_x])[0]
+        
+        print('_pred:', _pred)
+        
+    else:
+
+        model.fit(
+            np_content_ds,
+            train_y,
+            epochs=50,
+        )
+        model.save('projectbtc/model/_saved_news_embedding')
+        
+    
 
     
