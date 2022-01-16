@@ -82,6 +82,7 @@ scikit-learn==1.0.1
 scipy==1.7.2
 Send2Trash @ file:///tmp/build/80754af9/send2trash_1632406701022/work
 six @ file:///tmp/build/80754af9/six_1623709665295/work
+sklearn==0.0
 soupsieve==2.3
 tensorboard==2.7.0
 tensorboard-data-server==0.6.1

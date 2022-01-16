@@ -15,8 +15,7 @@ def parse_price_to_change(prices):
 
 
 def parse_change_to_price(changes, basic_price):
-    _rate = 100 / 8
-    
+    _rate = 100 / 16
     return [(_c / _rate * basic_price) + basic_price for _c in changes]
 
 
@@ -38,12 +37,12 @@ if __name__ == '__main__':
 
     open_next_price = df_csv_data['Close'].iloc[-1]
     closes = np.array(parse_price_to_change(df_csv_data['Close']))
-    print('closes shape: ', closes.shape)
+    # print('closes shape: ', closes.shape)
     closes = np.reshape(closes, (closes.shape[0], 1))
 
     y_pred = lstm_model.predict([closes])[0]
 
-    print('y_pred shape: ', y_pred.shape)
+    # print('y_pred shape: ', y_pred.shape)
     # print(y_pred)
 
     # output_jpg([_[0] for _ in closes], name='predict_x')

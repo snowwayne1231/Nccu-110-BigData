@@ -8,15 +8,16 @@ from tensorflow.keras import Sequential
 from tensorflow.keras.layers import Dense, LSTM, Input, Dropout
 from tensorflow.keras.losses import Huber
 from tensorflow.keras.optimizers import SGD
+from sklearn.preprocessing import MinMaxScaler
 
 
 
 def get_lstm_model():
-    model = Sequential()
-
-    # model.add(Input(shape=(672,)))
+    _x_shape = 675
     
-    model.add(LSTM(512, input_shape=(672, 2), return_sequences = True))
+    model = Sequential()
+    
+    model.add(LSTM(512, input_shape=(_x_shape, 2), return_sequences = True))
 
     model.add(Dropout(0.2))
 
@@ -52,6 +53,12 @@ def get_custom_prices(dataframe):
     close = dataframe['Close'].iloc[-1]
 
     list_prices_ratio_changes = [int((_p - open) / open * 100000) / 1000 for _p in _list_prices]
+    
+    min_max_scaler = MinMaxScaler(feature_range=(0, 1)).fit(list_prices_ratio_changes)
+
+    next = min_max_scaler.transform(list_prices_ratio_changes)
+
+    list_prices_ratio_changes = next.reshape((-1))
 
     return {
         'date_start': date_start,
@@ -60,15 +67,16 @@ def get_custom_prices(dataframe):
         'low': low,
         'open': open,
         'close': close,
-        'price_changes': list_prices_ratio_changes,
+        'price_changes': list_prices_ratio_changes * list_prices_ratio_changes,
         'length_hour': len(list_prices_ratio_changes),
     }
 
 
 
-def get_splited_point_dataframe(filepath, load_json=False):
+def get_splited_point_dataframe(filepath, load_json=False, xdatasets=[0.5, 0.5, 0.5]):
     _size_y = 168
     _size_x = 168*4
+    _add_size = 3
     _json_file_path = 'json/tmp_save_btc_train_prices.json'
     xdata = []
     ydata = []
@@ -79,7 +87,9 @@ def get_splited_point_dataframe(filepath, load_json=False):
             xdata = res['x']
             ydata = res['y']
     else:
-    
+        for _asidx in range(_add_size):
+            _xd = xdatasets[_asidx-1]
+            xdata.append(_xd)
         df_btcusd = pd.read_csv(filepath)
         df_btcusd_sorted = df_btcusd.sort_values(by=['Unix Timestamp'])
         df_btcusd_sorted.reset_index(inplace=True, drop=True)
@@ -121,8 +131,12 @@ def get_splited_point_dataframe(filepath, load_json=False):
 
 if __name__ == '__main__':
     filepath = 'csv/gemini_BTCUSD_1hr.csv'
+    
+    news_rate = 0.5369461
+    basic_rate = 0.51259
+    market_rate = 0.501734
 
-    xx, yy = get_splited_point_dataframe(filepath, load_json=True)
+    xx, yy = get_splited_point_dataframe(filepath, load_json=True, xdatasets=[news_rate, basic_rate, market_rate])
     # xx, yy = get_splited_point_dataframe(filepath, load_json=False)
     train_x = np.array([_x['price_changes'] for _x in xx])
     train_y = np.array([_y['price_changes'] for _y in yy])
@@ -135,7 +149,7 @@ if __name__ == '__main__':
 
     lstm_model = get_lstm_model()
 
-    history = lstm_model.fit(train_x, train_y, epochs=8)
+    history = lstm_model.fit(train_x, train_y, epochs=12)
 
     lstm_model.save('projectbtc/model/_saved_lstm.h5', save_format='h5')
     
